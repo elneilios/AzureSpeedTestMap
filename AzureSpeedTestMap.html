@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet">
+		<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+		<script type="text/javascript" src='//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.1/underscore-min.js'></script>
+		<script type="text/javascript" src="//maps.googleapis.com/maps/api/js?sensor=false"></script>
+		<title>Azure Speed Test - Locations</title>
+		<style>
+			.container {
+				width:970px;
+				margin-bottom: 10px;
+			}
+			#map_canvas {
+        		height: 700px;
+        		width: 100%;
+      		}
+      		#map_legend {
+      			background: #fff;
+      			border: 2px solid #000;
+      			padding: 10px;
+      			width: 200px;
+      		}
+      		#map_legend ul{
+      			padding: 0;
+      			margin: 0;
+      		}
+      		#map_legend li {
+      			list-style: none;
+      			clear:left;
+      		}
+      		#map_legend .legend-colour{
+      			float:left;
+      			margin-right: 5px;
+      			height: 20px;
+      			width: 20px;
+      		}
+
+		</style>
+	</head>
+	<body>
+		<div class="container" style="background:whitesmoke;">
+			<div><a href="http://www.two10degrees.com/"><img src="//two10degrees.blob.core.windows.net/two10degrees.png" class="pull-right"/></a></div>
+			<h1 style="color:grey;font-size:50px">Windows Azure Speed Test</h1>
+		</div>
+		<div class="container map">
+			<div id="map_canvas"></div>
+		</div>
+		<div class="container">
+			<p>Created by <a href="https://www.twitter.com/elneilios/">@elneilios</a> at <a href="https://www.twitter.com/two10degrees/">@two10degrees</a>.</p>
+			<p><small>The latency times are indicative only, and do not represent the maxium performance achievable from Windows Azure. Use this website purely as a tool to gauge which Azure Data Center could be the best for your location.<br/>&copy; Two10degrees 2013</small></p>
+		</div>
+		<div id="map_legend">
+			<h4>Data Centres</h4>
+			<ul>
+			</ul>
+		</div>
+
+		<script type="text/javascript">
+
+	var map;
+	var mapData = [];
+	var geocoder =  new google.maps.Geocoder();
+	var colours = {
+	"West Europe": "#A200FF",
+	"Souteast Asia" : "#E51400",
+	"East Asia": "#1BA1E2",
+	"North Central US": "#00ABA9",
+	"North Europe": "#8CBF26",
+	"South Central US": "#A05000",
+	"West US": "#E671B8",
+	"East US": "#F09609"
+	};
+
+	$().ready(function(){
+
+		if(!map){		
+			var map_canvas = document.getElementById('map_canvas');
+			var mapOptions = {
+				center: new google.maps.LatLng(0, 0),
+				zoom: 2,
+				mapTypeId: google.maps.MapTypeId.ROADMAP
+			}
+
+	    	map = new google.maps.Map(map_canvas, mapOptions);
+
+	    	map.panToBounds(new google.maps.LatLngBounds(
+	    		new google.maps.LatLng(85, -180),
+	    		new google.maps.LatLng(-85, 180)));
+
+
+	    	var legend = $('#map_legend');
+	    	var legend_list = legend.find('ul');
+	    	for(var dc in colours){
+	    		var colour = colours[dc];
+	    		legend_list.append("<li><div class='legend-colour' style='background:"+colour+";'></div>" + dc + "</li>");
+	    	}
+	    	map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(document.getElementById('map_legend'));
+		}
+		run();
+	});
+
+	function run(){
+
+		$.ajax({
+			url: "/locations",
+			type: "GET",
+			success: function(data){
+				console.log(data);
+				mapData = data;
+				drawMarkers();
+			},
+			error: function(err){
+				console.log(err);
+			}
+		});
+	}
+
+	function drawMarkers(){
+		mapData.forEach(function(tweet, index){
+
+			if(tweet.geo && tweet.latency){
+					var colour = colours[tweet.dc];
+					var marker = new google.maps.Marker({
+						icon: {
+							path: google.maps.SymbolPath.CIRCLE,
+							strokeColor: colour,
+							fillColor: colour,
+							fillOpacity: 1,
+							scale: 5
+						},
+						position: new google.maps.LatLng(tweet.geo.lat, tweet.geo.lng),
+						title: tweet.text +'\nAddress: ' + tweet.addr + '\nData Center: ' + tweet.dc + '\nLatency: ' + tweet.latency + 'ms',
+						map: map
+					});
+			}
+	    });
+	}
+
+
+
+		</script>
+	</body>
+</html>
