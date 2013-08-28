@@ -187,7 +187,7 @@ getTweets = function(){
 			var tweets = JSON.parse(rawTweets);
 			console.log(tweets);
 
-			STATE.tweets = STATE.tweets.concat(parseTweets(tweets));
+			STATE.tweets = parseTweets(tweets).concat(STATE.tweets); // put new tweets at the top
 
 			// Limit to the latest 1000 tweets
 			if(STATE.tweets.length > 1000){
