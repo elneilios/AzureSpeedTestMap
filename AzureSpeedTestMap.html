@@ -67,6 +67,7 @@
 	var colours = {
 	"West Europe": "#A200FF",
 	"Souteast Asia" : "#E51400",
+	"Southeast Asia" : "#E51400",
 	"East Asia": "#1BA1E2",
 	"North Central US": "#00ABA9",
 	"North Europe": "#8CBF26",
@@ -95,8 +96,10 @@
 	    	var legend = $('#map_legend');
 	    	var legend_list = legend.find('ul');
 	    	for(var dc in colours){
-	    		var colour = colours[dc];
-	    		legend_list.append("<li><div class='legend-colour' style='background:"+colour+";'></div>" + dc + "</li>");
+	    		if(dc != "Souteast Asia"){
+	    			var colour = colours[dc];
+	    			legend_list.append("<li><div class='legend-colour' style='background:"+colour+";'></div>" + name + "</li>");
+	    		}
 	    	}
 	    	map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(document.getElementById('map_legend'));
 		}
