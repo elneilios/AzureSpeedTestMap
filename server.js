@@ -1,6 +1,7 @@
 var http = require("http");
 var https = require("https");
 var express = require("express");
+var fs = require('fs');
 var _ = require("underscore");
 var mapquest = require("mapquest");
 
@@ -9,9 +10,14 @@ var port = process.env.PORT || 8080;
 app.use(express.bodyParser());
 app.listen(port);
 
-var twitterToken, refresh_url, lastGeocodeStatus;
-var rawTweets;
-var formattedTweets = [];
+var twitterToken;
+
+var STATE_FILEPATH = __dirname + '/state.json';
+var STATE = {
+	refresh_url: undefined,
+	tweets: []
+};
+
 var dcs = [
 	"West Europe",
 	"Souteast Asia",
@@ -28,7 +34,7 @@ app.get('/', function(req, res){
 });
 
 app.get('/locations', function(req, res){
-	res.json(_.filter(formattedTweets, function(t){return t.geo != undefined}));
+	res.json(_.filter(STATE.tweets, function(t){return t.geo != undefined}));
 });
 
 parseTweets = function(tweets){
@@ -71,8 +77,8 @@ parseDataCentre = function(tweet){
 }
 
 geocodeAddresses = function(i){
-	if(i < formattedTweets.length){
-		var ft = formattedTweets[i];
+	if(i < STATE.tweets.length){
+		var ft = STATE.tweets[i];
 		if(ft.addr && !ft.geo){
 			// Throttle the calls to geocoding api so we don't hit the query limit
 			setTimeout(function(){
@@ -118,10 +124,8 @@ geocodeGoogle = function(tweet, i){
 				tweet.geo = response.results[0].geometry.location;
 			}
 			else if(response.status == "ZERO_RESULTS"){
-				formattedTweets.splice(i, 1);
+				STATE.tweets.splice(i, 1);
 			}
-
-			lastGeocodeStatus = response.status;
 		})
 	}).on('error', function(e){
 		console.log("geocodeGoogle Error: " + e.message);
@@ -159,9 +163,9 @@ onGetToken = function(res){
 
 getTweets = function(){
 	rawTweets = "";
-	var query_string = refresh_url == undefined ?
+	var query_string = STATE.refresh_url == undefined ?
 		'?q=%23AzureSpeedTest&count=100&result_type=recent' :
-		refresh_url;
+		STATE.refresh_url;
 
 	console.log("query_string: " + query_string);
 
@@ -175,6 +179,7 @@ getTweets = function(){
 
 	https.get(options, function(res){
 		console.log("getTweets Response: " + res.statusCode);
+		var rawTweets = "";
 		res.on('data', function(chunk){
 			rawTweets += chunk.toString('utf-8');
 		});	
@@ -182,23 +187,44 @@ getTweets = function(){
 			var tweets = JSON.parse(rawTweets);
 			console.log(tweets);
 
-			formattedTweets = formattedTweets.concat(parseTweets(tweets));
+			STATE.tweets = STATE.tweets.concat(parseTweets(tweets));
 
 			// Limit to the latest 1000 tweets
-			if(formattedTweets.length > 1000){
-				formattedTweets.splice(1000, formattedTweets.length - 1000);
+			if(STATE.tweets.length > 1000){
+				STATE.tweets.splice(1000, STATE.tweets.length - 1000);
 			}
 
-			console.log("Loaded " + formattedTweets.length + " tweets");
+			console.log("Loaded " + STATE.tweets.length + " tweets");
 			geocodeAddresses(0);
 
-			refresh_url = tweets.search_metadata.refresh_url;
+			STATE.refresh_url = tweets.search_metadata.refresh_url;
 		})	
 	}).on('error', function(e){
 		console.log("getTweets Error: " + e.message);
 	});
 }
 
+saveSTATE = function(){
+	fs.writeFile(STATE_FILEPATH, JSON.stringify(STATE), function(err){
+		if(err){
+			console.log("Error writing state: " + err);
+		}
+	});
+}
+
+loadSTATE = function(){
+	fs.readFile(STATE_FILEPATH, function(err, data){
+		if(err){
+			console.log("Error reading state: " + err);
+		}
+		else{
+			STATE = JSON.parse(data);
+		}
+	});
+}
+
+loadSTATE();
+setInterval(saveSTATE, 10000);
 getToken(new Buffer(encodeURI('f8enoi8BcChm2rfEzFiUJQ') + ':' + encodeURI('MG0eCiSJAlcsrp68Xinm7xqhXuMWqF1SVXJBYV4g4Q')).toString('base64'));
 
 
