@@ -5,8 +5,9 @@ var _ = require("underscore");
 var mapquest = require("mapquest");
 
 var app = express();
+var port = process.env.PORT || 8080;
 app.use(express.bodyParser());
-app.listen(8080);
+app.listen(port);
 
 var twitterToken, refresh_url, lastGeocodeStatus;
 var rawTweets;
