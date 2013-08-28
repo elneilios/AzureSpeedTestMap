@@ -1,6 +1,6 @@
 {
   "name": "Azure Speed Test Map",
-  "description": "Searches for tweets using the #AzureSpeedTest tag and tries to plot their results onto a map"
+  "description": "Searches for tweets using the #AzureSpeedTest tag and tries to plot their results onto a map",
   "version": "1.0.0",
   "dependencies": {
     "express": "~3.3.4",
